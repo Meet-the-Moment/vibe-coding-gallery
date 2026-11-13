@@ -4,6 +4,7 @@
 // the makers (nothing secret in a public repo, credit only with consent).
 
 import { readdirSync, readFileSync, statSync, lstatSync, existsSync } from 'node:fs';
+import { inflateSync } from 'node:zlib';
 import { join, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -60,6 +61,29 @@ const NETWORK_PATTERNS = [
 // - WebP: any EXIF chunk; any XMP chunk mentioning GPS; a broken chunk list.
 // Ordinary screenshots carry harmless text (for example "Screenshot") and pass.
 const GPS_RE = /gps/i;
+
+// Returns the full readable text of a PNG text chunk (keyword included), decompressing it if
+// needed, or null if it cannot be read or is a hex-encoded "Raw profile" (which can carry a whole
+// EXIF block). null means "treat as unsafe".
+function pngText(type, data) {
+  const nul = data.indexOf(0);
+  if (nul < 0) return null;
+  const keyword = data.toString('latin1', 0, nul);
+  if (/^raw profile/i.test(keyword)) return null;
+  try {
+    if (type === 'tEXt') return data.toString('latin1');
+    if (type === 'zTXt') return keyword + ' ' + inflateSync(data.subarray(nul + 2)).toString('latin1');
+    // iTXt: keyword \0 compression-flag method language \0 translated-keyword \0 text
+    const flag = data[nul + 1];
+    const langEnd = data.indexOf(0, nul + 3);
+    const transEnd = langEnd < 0 ? -1 : data.indexOf(0, langEnd + 1);
+    if (transEnd < 0) return null;
+    const body = data.subarray(transEnd + 1);
+    return keyword + ' ' + (flag ? inflateSync(body) : body).toString('latin1');
+  } catch {
+    return null;
+  }
+}
 function hasPhotoMetadata(buf) {
   if (buf.length > 4 && buf[0] === 0xff && buf[1] === 0xd8) {
     let i = 2;
@@ -88,7 +112,10 @@ function hasPhotoMetadata(buf) {
       const type = buf.toString('latin1', i + 4, i + 8);
       if (i + 12 + len > buf.length) return true;
       if (type === 'eXIf') return true;
-      if (['tEXt', 'iTXt', 'zTXt'].includes(type) && GPS_RE.test(buf.toString('latin1', i + 8, i + 8 + len))) return true;
+      if (['tEXt', 'iTXt', 'zTXt'].includes(type)) {
+        const text = pngText(type, buf.subarray(i + 8, i + 8 + len));
+        if (text === null || GPS_RE.test(text)) return true;   // unreadable counts as unsafe
+      }
       if (type === 'IEND') return false;
       i += 12 + len;
     }
