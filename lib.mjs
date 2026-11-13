@@ -40,6 +40,10 @@ const NETWORK_PATTERNS = [
   [/<form[^>]*\baction\s*=/i, 'a form that sends its answers somewhere'],
   [/<(script|link|img|iframe|audio|video|source|embed|object)\b[^>]*\b(src|href)\s*=\s*["']?\s*(https?:)?\/\//i, 'it loads something from another website (put everything inside the one file)'],
   [/@import\s+url\(\s*["']?(https?:)?\/\//i, 'it loads a style from another website'],
+  [/\b(window|document|top|parent|self)?\.?location\s*(\.href)?\s*=(?!=)|\blocation\.(assign|replace)\s*\(/, 'it sends the player to another page. A game stays on its own page'],
+  [/<meta[^>]*http-equiv\s*=\s*["']?refresh/i, 'it sends the player to another page automatically'],
+  [/\bwindow\.open\s*\(/, 'it opens another window'],
+  [/<a\b[^>]*\bhref\s*=\s*["']?\s*(https?:)?\/\//i, 'it has a link to another website. Take the link out (put your name and LinkedIn in about.md instead)'],
   [/\b(localStorage|sessionStorage|indexedDB)\b/, 'it saves things in the browser. The gallery runs every game in a sealed box where saving is switched off, so the game would break there. Take the saving out'],
 ];
 

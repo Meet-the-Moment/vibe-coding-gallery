@@ -19,7 +19,12 @@ const LOOKS = {
   party: { name: 'Party Games: Community Edition', kicker: 'The party gets bigger every time someone builds' },
 };
 
-const KIND_LABEL = { web: 'Play in your browser', prompt: 'Prompt game', tool: 'Small tool' };
+// Policy for the wrapper page around each game, and (by inheritance) the game's frame.
+// frame-src 'none' stops the frame being navigated to any other address; connect-src 'none'
+// stops it sending anything; no network sources are allowed at all.
+const PLAY_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; child-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'";
+
+const KIND_LABEL ={ web: 'Play in your browser', prompt: 'Prompt game', tool: 'Small tool' };
 const KIND_BUTTON = { web: 'Play', prompt: 'Get the prompt', tool: 'Try it' };
 
 const { games, problems } = loadGames();
@@ -244,12 +249,32 @@ writeFileSync(join(DIST, 'index.html'), pageShell({ title: LOOKS[DEFAULT_LOOK].n
 // ---- One folder per game ----
 for (const g of games) {
   if (g.kind === 'web' || g.kind === 'tool') {
-    // The game file is served exactly as the maker wrote it, under /play/. netlify.toml puts every
-    // /play/ page in a sandbox: it gets a sealed origin of its own (it cannot read or change the
-    // gallery or any other game), and it cannot contact any other site, whatever is inside.
+    // The maker's file is never served as a page of its own. It runs inside a frame on a wrapper
+    // page the gallery writes, and the sandbox is written INTO the wrapper, so it holds however
+    // the address is spelled and whatever the server headers do:
+    // - sandbox="allow-scripts" (and nothing else): the game gets a sealed origin of its own. It
+    //   cannot read or change the gallery or another game, save anything, open pop-ups, submit
+    //   forms, or move the player's page anywhere.
+    // - the wrapper's Content-Security-Policy (inherited by the frame) blocks every connection and
+    //   stops the frame being sent to any other address (frame-src 'none').
+    // The rules in lib.mjs are the polite warning before this; this is the safety net.
     const out = join(DIST, 'play', g.slug);
     mkdirSync(out, { recursive: true });
-    copyFileSync(join(g.dir, g.kind === 'web' ? 'game.html' : 'tool.html'), join(out, 'index.html'));
+    const game = readFileSync(join(g.dir, g.kind === 'web' ? 'game.html' : 'tool.html'), 'utf8');
+    const wrapper = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="${esc(PLAY_CSP)}">
+<title>${esc(g.title)}</title>
+<style>html,body{margin:0;height:100%;background:#fff}iframe{display:block;border:0;width:100%;height:100vh;height:100dvh}</style>
+</head>
+<body>
+<iframe title="${esc(g.title)}" sandbox="allow-scripts" referrerpolicy="no-referrer" srcdoc="${esc(game)}"></iframe>
+</body>
+</html>`;
+    writeFileSync(join(out, 'index.html'), wrapper);
     continue;
   }
   const out = join(DIST, 'prompts', g.slug);

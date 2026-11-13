@@ -22,7 +22,15 @@ top of `build.mjs`.
 | `lib.mjs` | The rules: required fields, file types and sizes, no links or special files, credit only with consent, no secrets, no network calls, no saving, nothing loaded from other sites. |
 | `check.mjs` | `node check.mjs` runs the rules and says in plain words what to fix. |
 | `build.mjs` | `node build.mjs` runs the same rules, then builds the site into `dist/`. It refuses to build if any game breaks a rule. |
-| `netlify.toml` | Build settings and security headers. Playable games are served under `/play/` in a sandbox: each gets a sealed origin of its own, cannot reach the gallery or other games, cannot save, and cannot contact any other site, whatever is in its file. Prompt pages are under `/prompts/`. |
+| `netlify.toml` | Build settings and security headers, a second layer behind the wrappers below. |
+
+**How games are contained.** A maker's file is never served as a page of its own. `build.mjs`
+puts it inside a frame with `sandbox="allow-scripts"` on a wrapper page under `/play/`, and
+writes a strict policy into that page. The game gets a sealed origin: it cannot read or change
+the gallery or another game, save anything, open pop-ups, submit forms, move the player's page,
+send data, or send its own frame to another address. Tested 11/13/2026 with a deliberately
+hostile game and no server headers: every one of those attempts was blocked. Prompt pages are
+under `/prompts/`.
 
 No dependencies: plain Node 18 or later.
 
