@@ -52,24 +52,61 @@ const NETWORK_PATTERNS = [
   [/\b(localStorage|sessionStorage|indexedDB)\b/, 'it saves things in the browser. The gallery runs every game in a sealed box where saving is switched off, so the game would break there. Take the saving out'],
 ];
 
-// Camera metadata (EXIF) can include GPS location. JPEG: an APP1 segment starting "Exif".
-// PNG: an eXIf chunk. WebP: an EXIF chunk. Plain byte checks, no dependencies.
+// Photo metadata can include GPS location and camera details. FAILS CLOSED: anything this code
+// cannot fully read counts as "has metadata". Plain byte parsing, no dependencies.
+// - JPEG: any EXIF (APP1 "Exif") or IPTC (APP13) segment; any XMP (APP1) mentioning GPS;
+//   a file whose headers do not run cleanly to the image data.
+// - PNG: any eXIf chunk; any text chunk (tEXt, iTXt, zTXt) mentioning GPS; a broken chunk list.
+// - WebP: any EXIF chunk; any XMP chunk mentioning GPS; a broken chunk list.
+// Ordinary screenshots carry harmless text (for example "Screenshot") and pass.
+const GPS_RE = /gps/i;
 function hasPhotoMetadata(buf) {
   if (buf.length > 4 && buf[0] === 0xff && buf[1] === 0xd8) {
-    for (let i = 2; i < buf.length - 10; ) {
-      if (buf[i] !== 0xff) break;
+    let i = 2;
+    while (i + 4 <= buf.length) {
+      if (buf[i] !== 0xff) return true;                  // not a marker where one must be
       const marker = buf[i + 1];
-      if (marker === 0xda || marker === 0xd9) break;   // start of image data: no more headers
+      if (marker === 0xda) return false;                  // reached the image data cleanly
+      if (marker === 0xd9) return true;                   // ended before any image data
+      if (marker === 0xff) { i += 1; continue; }          // padding byte
       const len = buf.readUInt16BE(i + 2);
-      if (marker === 0xe1 && buf.toString('latin1', i + 4, i + 8) === 'Exif') return true;
+      if (len < 2 || i + 2 + len > buf.length) return true;
+      const seg = buf.subarray(i + 4, i + 2 + len);
+      if (marker === 0xe1) {
+        if (seg.toString('latin1', 0, 4) === 'Exif') return true;
+        if (GPS_RE.test(seg.toString('latin1'))) return true;
+      }
+      if (marker === 0xed) return true;                   // APP13: IPTC / Photoshop data
       i += 2 + len;
+    }
+    return true;                                          // ran out of file before image data
+  }
+  if (buf.length > 8 && buf.toString('latin1', 1, 4) === 'PNG') {
+    let i = 8;
+    while (i + 8 <= buf.length) {
+      const len = buf.readUInt32BE(i);
+      const type = buf.toString('latin1', i + 4, i + 8);
+      if (i + 12 + len > buf.length) return true;
+      if (type === 'eXIf') return true;
+      if (['tEXt', 'iTXt', 'zTXt'].includes(type) && GPS_RE.test(buf.toString('latin1', i + 8, i + 8 + len))) return true;
+      if (type === 'IEND') return false;
+      i += 12 + len;
+    }
+    return true;
+  }
+  if (buf.length > 12 && buf.toString('latin1', 0, 4) === 'RIFF' && buf.toString('latin1', 8, 12) === 'WEBP') {
+    let i = 12;
+    while (i + 8 <= buf.length) {
+      const type = buf.toString('latin1', i, i + 4);
+      const len = buf.readUInt32LE(i + 4);
+      if (i + 8 + len > buf.length) return true;
+      if (type === 'EXIF') return true;
+      if (type === 'XMP ' && GPS_RE.test(buf.toString('latin1', i + 8, i + 8 + len))) return true;
+      i += 8 + len + (len % 2);
     }
     return false;
   }
-  const s = buf.toString('latin1', 0, Math.min(buf.length, 1 << 20));
-  if (s.startsWith('\x89PNG')) return s.includes('eXIf');
-  if (s.startsWith('RIFF') && s.slice(8, 12) === 'WEBP') return s.includes('EXIF');
-  return false;
+  return true;                                            // not a format we can read: refuse
 }
 
 export function parseAbout(text) {
