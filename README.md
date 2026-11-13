@@ -19,10 +19,10 @@ top of `build.mjs`.
 | Part | What it does |
 |---|---|
 | `games/<name>/` | One folder per game: `about.md` plus `game.html`, `prompt.md` or `tool.html`, and an optional photo. `_template` is the starter. |
-| `lib.mjs` | The rules: required fields, file types and sizes, credit only with consent, no secrets, no network calls, nothing loaded from other sites. |
+| `lib.mjs` | The rules: required fields, file types and sizes, no links or special files, credit only with consent, no secrets, no network calls, no saving, nothing loaded from other sites. |
 | `check.mjs` | `node check.mjs` runs the rules and says in plain words what to fix. |
 | `build.mjs` | `node build.mjs` runs the same rules, then builds the site into `dist/`. It refuses to build if any game breaks a rule. |
-| `netlify.toml` | Build settings, plus headers that stop any game from contacting another site, whatever is in its file. |
+| `netlify.toml` | Build settings and security headers. Playable games are served under `/play/` in a sandbox: each gets a sealed origin of its own, cannot reach the gallery or other games, cannot save, and cannot contact any other site, whatever is in its file. Prompt pages are under `/prompts/`. |
 
 No dependencies: plain Node 18 or later.
 

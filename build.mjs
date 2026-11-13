@@ -36,7 +36,8 @@ const paragraphs = (text) => esc(text).split(/\n\s*\n/).map((p) => `<p>${p.repla
 
 const DIST = join(ROOT, 'dist');
 rmSync(DIST, { recursive: true, force: true });
-mkdirSync(join(DIST, 'games'), { recursive: true });
+mkdirSync(join(DIST, 'play'), { recursive: true });
+mkdirSync(join(DIST, 'prompts'), { recursive: true });
 mkdirSync(join(DIST, 'makers'), { recursive: true });
 cpSync(join(ROOT, 'site', 'assets'), join(DIST, 'assets'), { recursive: true });
 
@@ -151,7 +152,7 @@ function card(g) {
     <h2>${esc(g.title)}</h2>
     <p class="tagline">${esc(g.tagline)}</p>
     ${g.players ? `<p class="players">For: ${esc(g.players)}</p>` : ''}
-    <a class="go" href="games/${esc(g.slug)}/">${esc(KIND_BUTTON[g.kind])}</a>
+    <a class="go" href="${g.kind === 'prompt' ? 'prompts' : 'play'}/${esc(g.slug)}/">${esc(KIND_BUTTON[g.kind])}</a>
     ${credit(g)}
   </div>
 </article>`;
@@ -242,14 +243,17 @@ writeFileSync(join(DIST, 'index.html'), pageShell({ title: LOOKS[DEFAULT_LOOK].n
 
 // ---- One folder per game ----
 for (const g of games) {
-  const out = join(DIST, 'games', g.slug);
-  mkdirSync(out, { recursive: true });
   if (g.kind === 'web' || g.kind === 'tool') {
-    // The game file is served exactly as the maker wrote it. netlify.toml adds headers that stop it
-    // from contacting any other site, whatever is inside.
+    // The game file is served exactly as the maker wrote it, under /play/. netlify.toml puts every
+    // /play/ page in a sandbox: it gets a sealed origin of its own (it cannot read or change the
+    // gallery or any other game), and it cannot contact any other site, whatever is inside.
+    const out = join(DIST, 'play', g.slug);
+    mkdirSync(out, { recursive: true });
     copyFileSync(join(g.dir, g.kind === 'web' ? 'game.html' : 'tool.html'), join(out, 'index.html'));
     continue;
   }
+  const out = join(DIST, 'prompts', g.slug);
+  mkdirSync(out, { recursive: true });
   // Prompt games get a page with the prompt and a Copy button.
   const prompt = readFileSync(join(g.dir, 'prompt.md'), 'utf8').trim();
   const body = `<body data-look="${DEFAULT_LOOK}">

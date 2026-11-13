@@ -43,6 +43,8 @@ C. Check my game against these rules and tell me plainly if anything breaks one.
      fonts, images or styles.
    - It collects nothing and sends nothing anywhere: no fetch, no forms that send answers, no
      sign-ins, no saving anything to a server.
+   - It saves nothing at all, not even in the browser (no localStorage, sessionStorage or
+     indexedDB). The gallery runs every game in a sealed box where saving is switched off.
    - There are NO passwords, API keys, access tokens or anything secret anywhere in it. This
      gallery is public, forever.
    - Nothing about real people, and nothing from my work.

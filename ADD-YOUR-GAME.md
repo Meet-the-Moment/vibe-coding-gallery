@@ -10,8 +10,9 @@ Anyone on the internet can read every file in it, and every old version of every
 forever. Deleting something later does not remove it.
 
 **Never put passwords, API keys, access tokens, or anything sensitive in your folder.**
-Nothing about real people, and nothing from work. Your game must collect nothing and send
-nothing anywhere. The gallery checks for this and will not publish a game that breaks it.
+Nothing about real people, and nothing from work. Your game must collect nothing, save
+nothing (not even in the browser), and send nothing anywhere. The gallery checks for this and
+will not publish a game that breaks it.
 
 ## What goes in your folder
 

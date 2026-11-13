@@ -12,7 +12,7 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# Every page: no framing by other sites, no sniffing, no referrer leakage.
+# Every page: no sniffing, no referrer leakage, no other site framing it.
 [[headers]]
   for = "/*"
   [headers.values]
@@ -20,10 +20,29 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     X-Frame-Options = "SAMEORIGIN"
 
-# The games themselves: whatever is inside the file, the browser refuses to let it contact any
-# other site or send anything anywhere. This is the safety net behind the rules check.
+# The gallery's own pages (home page and prompt pages). The only outside things they load are
+# Google Fonts. They send nothing anywhere.
 [[headers]]
-  for = "/games/*"
+  for = "/"
   [headers.values]
-    Content-Security-Policy = "default-src 'self' 'unsafe-inline' data: blob:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'"
+
+[[headers]]
+  for = "/prompts/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'"
+
+# The games themselves, written by participants. "sandbox allow-scripts" gives each game a sealed
+# origin of its own: it cannot read or change the gallery or another game, cannot save anything,
+# cannot open pop-ups, and cannot send anything anywhere. This is the real safety net; the rules
+# check in lib.mjs is the polite warning before it.
+[[headers]]
+  for = "/play/*"
+  [headers.values]
+    Content-Security-Policy = "sandbox allow-scripts; default-src 'self' 'unsafe-inline' data: blob:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"

@@ -3,7 +3,7 @@
 // Every rule here protects either the players (nothing collected, nothing sent anywhere) or
 // the makers (nothing secret in a public repo, credit only with consent).
 
-import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync, lstatSync, existsSync } from 'node:fs';
 import { join, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -40,6 +40,7 @@ const NETWORK_PATTERNS = [
   [/<form[^>]*\baction\s*=/i, 'a form that sends its answers somewhere'],
   [/<(script|link|img|iframe|audio|video|source|embed|object)\b[^>]*\b(src|href)\s*=\s*["']?\s*(https?:)?\/\//i, 'it loads something from another website (put everything inside the one file)'],
   [/@import\s+url\(\s*["']?(https?:)?\/\//i, 'it loads a style from another website'],
+  [/\b(localStorage|sessionStorage|indexedDB)\b/, 'it saves things in the browser. The gallery runs every game in a sealed box where saving is switched off, so the game would break there. Take the saving out'],
 ];
 
 export function parseAbout(text) {
@@ -60,12 +61,13 @@ export function parseAbout(text) {
   return { fields, body: m[2].trim() };
 }
 
+// lstat, never stat: a symbolic link in a pull request could otherwise point the build at any
+// file on the build machine and publish it. Links are rejected below before anything is read.
 function folderBytes(dir) {
   let total = 0;
   for (const f of readdirSync(dir)) {
-    const p = join(dir, f);
-    const s = statSync(p);
-    total += s.isDirectory() ? folderBytes(p) : s.size;
+    const s = lstatSync(join(dir, f));
+    if (s.isFile()) total += s.size;
   }
   return total;
 }
@@ -79,17 +81,23 @@ export function loadGames() {
 
   for (const slug of readdirSync(GAMES_DIR).sort()) {
     const dir = join(GAMES_DIR, slug);
-    if (!statSync(dir).isDirectory() || slug.startsWith('_') || slug.startsWith('.')) continue;
+    const dirStat = lstatSync(dir);
+    if (slug.startsWith('_') || slug.startsWith('.')) continue;
+    if (dirStat.isSymbolicLink()) { add(slug, 'This is a link, not a real folder. Add a real folder.'); continue; }
+    if (!dirStat.isDirectory()) continue;
     const before = problems.length;
 
     if (!SLUG_RE.test(slug)) add(slug, 'The folder name must be lowercase letters and numbers joined by hyphens, like my-holiday-trivia.');
 
     const files = readdirSync(dir);
+    let unsafe = false;
     for (const f of files) {
-      const p = join(dir, f);
-      if (statSync(p).isDirectory()) { add(slug, `Remove the folder "${f}". A game folder holds files only.`); continue; }
+      const s = lstatSync(join(dir, f));
+      if (s.isSymbolicLink() || (!s.isFile() && !s.isDirectory())) { add(slug, `Remove "${f}". It is a link or special file, not a normal file.`); unsafe = true; continue; }
+      if (s.isDirectory()) { add(slug, `Remove the folder "${f}". A game folder holds files only.`); continue; }
       if (!ALLOWED_EXT.has(extname(f).toLowerCase())) add(slug, `Remove "${f}". Only .html, .md, .jpg, .png and .webp files are allowed.`);
     }
+    if (unsafe) continue;   // read nothing from a folder that contains links
     if (folderBytes(dir) > MAX_FOLDER_BYTES) add(slug, 'The folder is bigger than 3 MB. Make the photo smaller, or remove files you do not need.');
 
     const aboutPath = join(dir, 'about.md');
