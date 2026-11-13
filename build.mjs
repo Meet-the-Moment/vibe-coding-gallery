@@ -21,8 +21,10 @@ const LOOKS = {
 
 // Policy for the wrapper page around each game, and (by inheritance) the game's frame.
 // frame-src 'none' stops the frame being navigated to any other address; connect-src 'none'
-// stops it sending anything; no network sources are allowed at all.
-const PLAY_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; child-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'";
+// blocks background network calls; no network sources are allowed for scripts, styles, images,
+// media or fonts; webrtc 'block' covers direct connections in browsers that support it (the rules
+// in lib.mjs also reject WebRTC code, since not every browser honours that directive yet).
+const PLAY_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; child-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; webrtc 'block'";
 
 const KIND_LABEL ={ web: 'Play in your browser', prompt: 'Prompt game', tool: 'Small tool' };
 const KIND_BUTTON = { web: 'Play', prompt: 'Get the prompt', tool: 'Try it' };
@@ -46,13 +48,18 @@ mkdirSync(join(DIST, 'prompts'), { recursive: true });
 mkdirSync(join(DIST, 'makers'), { recursive: true });
 cpSync(join(ROOT, 'site', 'assets'), join(DIST, 'assets'), { recursive: true });
 
-const FONTS = 'https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Playfair+Display:wght@700&family=Press+Start+2P&family=Source+Sans+3:wght@400;600;700&display=swap';
+// Fonts come only from the visitor's own device. No web fonts: loading them from Google would
+// send every visitor's address to Google, and the gallery promises it collects nothing.
+const SANS = "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
+const ARCADE = "ui-monospace,'SF Mono',Menlo,Consolas,'Courier New',monospace";
+const SERIF = "'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif";
+const ROUNDED = "ui-rounded,'SF Pro Rounded','Arial Rounded MT Bold','Trebuchet MS',system-ui,sans-serif";
 
 const STYLE = `
 :root { --navy:#1c487b; --teal:#1ab1d2; --orange:#f18f38; --pink:#e5498b; --gold:#f4c430; }
 * { box-sizing:border-box; }
 html, body { margin:0; }
-body { font-family:'Source Sans 3',system-ui,sans-serif; line-height:1.5; min-height:100vh; }
+body { font-family:${SANS}; line-height:1.5; min-height:100vh; }
 a { color:inherit; }
 .wrap { max-width:1100px; margin:0 auto; padding:0 16px; }
 header.top { padding:28px 0 18px; }
@@ -87,14 +94,14 @@ footer p { margin:6px 0; }
 /* LOOK 1: Vibe Coding Arcade */
 [data-look="arcade"] body, body[data-look="arcade"] { background:#0f1e3a; color:#eaf6ff;
   background-image:radial-gradient(circle at 20% 0%, rgba(26,177,210,.25), transparent 45%), radial-gradient(circle at 90% 20%, rgba(229,73,139,.22), transparent 40%); }
-body[data-look="arcade"] h1 { font-family:'Press Start 2P',monospace; font-size:clamp(20px,4.4vw,36px); color:#fff; text-shadow:0 0 12px var(--teal), 3px 3px 0 var(--pink); }
-body[data-look="arcade"] .kicker { color:var(--gold); font-family:'Press Start 2P',monospace; font-size:11px; }
+body[data-look="arcade"] h1 { font-family:${ARCADE}; font-weight:800; letter-spacing:2px; text-transform:uppercase; font-size:clamp(24px,5vw,44px); color:#fff; text-shadow:0 0 12px var(--teal), 3px 3px 0 var(--pink); }
+body[data-look="arcade"] .kicker { color:var(--gold); font-family:${ARCADE}; font-size:13px; text-transform:uppercase; letter-spacing:1.5px; }
 body[data-look="arcade"] .card { background:#16284d; border:2px solid var(--teal); box-shadow:0 0 18px rgba(26,177,210,.35); }
 body[data-look="arcade"] .card:nth-child(3n+2) { border-color:var(--pink); box-shadow:0 0 18px rgba(229,73,139,.35); }
 body[data-look="arcade"] .card:nth-child(3n+3) { border-color:var(--gold); box-shadow:0 0 18px rgba(244,196,48,.3); }
 body[data-look="arcade"] .band { background:repeating-linear-gradient(90deg,var(--teal) 0 12px,var(--pink) 12px 24px,var(--gold) 24px 36px); }
 body[data-look="arcade"] .badge { background:#0f1e3a; color:var(--gold); border:1px solid var(--gold); }
-body[data-look="arcade"] .card h2 { font-family:'Press Start 2P',monospace; font-size:14px; line-height:1.6; }
+body[data-look="arcade"] .card h2 { font-family:${ARCADE}; font-weight:800; font-size:17px; line-height:1.35; text-transform:uppercase; letter-spacing:1px; }
 body[data-look="arcade"] .go { background:var(--orange); color:#10213f; box-shadow:0 4px 0 #b65d17; }
 body[data-look="arcade"] .avatar { background:var(--teal); color:#0f1e3a; }
 body[data-look="arcade"] .empty { background:#16284d; }
@@ -104,12 +111,12 @@ body[data-look="arcade"] .banner { display:none; }
 body[data-look="gallery"] { background:#fdf8ef; color:#2b3445; }
 body[data-look="gallery"] .banner { display:block; width:100%; height:180px; object-fit:cover; object-position:center 38%;
   -webkit-mask-image:linear-gradient(to bottom,#000 60%,transparent); mask-image:linear-gradient(to bottom,#000 60%,transparent); }
-body[data-look="gallery"] h1 { font-family:'Playfair Display',Georgia,serif; font-size:clamp(30px,5vw,48px); color:var(--navy); }
+body[data-look="gallery"] h1 { font-family:${SERIF}; font-size:clamp(30px,5vw,48px); color:var(--navy); }
 body[data-look="gallery"] .kicker { color:#c4651c; }
 body[data-look="gallery"] .card { background:#fff; border:2px solid #1a2744; box-shadow:7px 7px 0 #f3d9b8; }
 body[data-look="gallery"] .band { background:linear-gradient(90deg,#7fd3e6,#f6c1d6,#f8dc8a); }
 body[data-look="gallery"] .badge { background:#e6f6fa; color:var(--navy); }
-body[data-look="gallery"] .card h2 { font-family:'Playfair Display',Georgia,serif; color:var(--navy); }
+body[data-look="gallery"] .card h2 { font-family:${SERIF}; color:var(--navy); }
 body[data-look="gallery"] .go { background:var(--navy); color:#fff; }
 body[data-look="gallery"] .avatar { background:#fdebd5; color:#c4651c; }
 body[data-look="gallery"] .filters, body[data-look="gallery"] .picker { color:var(--navy); }
@@ -119,13 +126,13 @@ body[data-look="gallery"] .empty { background:#fff; border:2px dashed #c9b79a; }
 body[data-look="party"] { background:#fffaf0; color:#2a2440;
   background-image:radial-gradient(var(--pink) 2px,transparent 2.5px),radial-gradient(var(--teal) 2px,transparent 2.5px),radial-gradient(var(--gold) 2.5px,transparent 3px);
   background-size:90px 90px,130px 130px,110px 110px; background-position:0 0,40px 60px,70px 20px; }
-body[data-look="party"] h1 { font-family:'Fredoka',system-ui,sans-serif; font-size:clamp(32px,5.5vw,54px); color:var(--pink); text-shadow:3px 3px 0 var(--gold); }
-body[data-look="party"] .kicker { color:var(--teal); font-family:'Fredoka',sans-serif; font-size:17px; }
+body[data-look="party"] h1 { font-family:${ROUNDED}; font-weight:800; font-size:clamp(32px,5.5vw,54px); color:var(--pink); text-shadow:3px 3px 0 var(--gold); }
+body[data-look="party"] .kicker { color:var(--teal); font-family:${ROUNDED}; font-weight:700; font-size:17px; }
 body[data-look="party"] .card { background:#fff; border-radius:26px; border:3px solid #2a2440; transform:rotate(-0.6deg); }
 body[data-look="party"] .card:nth-child(even) { transform:rotate(0.7deg); }
 body[data-look="party"] .band { height:16px; background:repeating-linear-gradient(45deg,var(--pink) 0 14px,var(--gold) 14px 28px,var(--teal) 28px 42px); }
 body[data-look="party"] .badge { background:var(--gold); color:#2a2440; }
-body[data-look="party"] .card h2 { font-family:'Fredoka',sans-serif; font-size:24px; }
+body[data-look="party"] .card h2 { font-family:${ROUNDED}; font-weight:800; font-size:24px; }
 body[data-look="party"] .go { background:var(--pink); color:#fff; border-radius:999px; }
 body[data-look="party"] .avatar { background:var(--teal); color:#fff; }
 body[data-look="party"] .empty { background:#fff; border:3px dashed var(--pink); }
@@ -173,9 +180,6 @@ function pageShell({ title, description, body, depth = '' }) {
 <meta name="description" content="${esc(description)}">
 <link rel="icon" href="${depth}assets/favicon-32.png">
 <link rel="apple-touch-icon" href="${depth}assets/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="${FONTS}">
 <style>${STYLE}</style>
 </head>
 ${body}
@@ -252,11 +256,12 @@ for (const g of games) {
     // The maker's file is never served as a page of its own. It runs inside a frame on a wrapper
     // page the gallery writes, and the sandbox is written INTO the wrapper, so it holds however
     // the address is spelled and whatever the server headers do:
-    // - sandbox="allow-scripts" (and nothing else): the game gets a sealed origin of its own. It
-    //   cannot read or change the gallery or another game, save anything, open pop-ups, submit
-    //   forms, or move the player's page anywhere.
-    // - the wrapper's Content-Security-Policy (inherited by the frame) blocks every connection and
-    //   stops the frame being sent to any other address (frame-src 'none').
+    // - sandbox="allow-scripts allow-forms": the game gets a sealed origin of its own. It cannot
+    //   read or change the gallery or another game, save anything, open pop-ups or alert boxes,
+    //   or move the player's page anywhere. allow-forms only lets on-page form handlers run;
+    //   form-action 'none' still stops any form sending its answers anywhere.
+    // - the wrapper's Content-Security-Policy (inherited by the frame) blocks background network
+    //   calls and outside resources, and stops the frame being sent to any other address.
     // The rules in lib.mjs are the polite warning before this; this is the safety net.
     const out = join(DIST, 'play', g.slug);
     mkdirSync(out, { recursive: true });
@@ -271,7 +276,7 @@ for (const g of games) {
 <style>html,body{margin:0;height:100%;background:#fff}iframe{display:block;border:0;width:100%;height:100vh;height:100dvh}</style>
 </head>
 <body>
-<iframe title="${esc(g.title)}" sandbox="allow-scripts" referrerpolicy="no-referrer" srcdoc="${esc(game)}"></iframe>
+<iframe title="${esc(g.title)}" sandbox="allow-scripts allow-forms" referrerpolicy="no-referrer" srcdoc="${esc(game)}"></iframe>
 </body>
 </html>`;
     writeFileSync(join(out, 'index.html'), wrapper);

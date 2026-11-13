@@ -1,9 +1,12 @@
 # Netlify builds this on every push to main and makes a preview for every pull request.
 # The build runs the gallery rules first, so a pull request that breaks them shows a failed preview.
 #
-# NEVER add environment variables or secrets to this Netlify site. The repo is public and pull
-# requests come from people outside MTM, so a preview build could read anything stored here.
-# The gallery needs no secrets at all.
+# A PULL REQUEST CAN CHANGE THIS FILE AND THE BUILD SCRIPTS. Nothing in this repo can protect a
+# preview from a pull request that rewrites its own rules. The protection is on Netlify and GitHub
+# (see "Rules for maintainers" in README.md): untrusted deploys must wait for approval, and a
+# maintainer approves only pull requests that touch nothing but one games/<name>/ folder.
+#
+# NEVER add environment variables or secrets to this Netlify site or its team.
 
 [build]
   command = "node build.mjs"
@@ -12,37 +15,21 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# Every page: no sniffing, no referrer leakage, no other site framing it.
+# Default for every path: nothing loads from anywhere else, nothing is sent anywhere.
 [[headers]]
   for = "/*"
   [headers.values]
     X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
+    Referrer-Policy = "no-referrer"
     X-Frame-Options = "SAMEORIGIN"
-
-# The gallery's own pages (home page and prompt pages). The only outside things they load are
-# Google Fonts. They send nothing anywhere.
-[[headers]]
-  for = "/"
-  [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'"
-
-[[headers]]
-  for = "/index.html"
-  [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'"
-
-[[headers]]
-  for = "/prompts/*"
-  [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; frame-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'; webrtc 'block'; frame-ancestors 'self'"
 
 # The game pages. The main protection is NOT this header: build.mjs writes each game into a
 # sandboxed frame on a wrapper page, with its own policy inside the page, so it holds even if a
-# differently spelled address skips this rule. This header repeats the same policy as a second
-# layer, and also seals the wrapper itself.
+# differently spelled address skips this rule. This header repeats it as a second layer and also
+# seals the wrapper itself.
 [[headers]]
   for = "/play/*"
   [headers.values]
-    Content-Security-Policy = "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; child-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'"
+    Content-Security-Policy = "sandbox allow-scripts allow-forms; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; child-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; webrtc 'block'; frame-ancestors 'self'"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"

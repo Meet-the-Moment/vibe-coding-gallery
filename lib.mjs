@@ -16,6 +16,8 @@ const MAX_FOLDER_BYTES = 3 * 1024 * 1024;
 const MAX_HEADSHOT_BYTES = 500 * 1024;
 const LINKEDIN_RE = /^https:\/\/(www\.)?linkedin\.com\/in\/[A-Za-z0-9\-_%.]+\/?$/;
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const KNOWN_FIELDS = new Set(['title', 'kind', 'tagline', 'players', 'made_by', 'linkedin', 'headshot', 'public_credit_ok']);
+const TEMPLATE_BODY = 'Anything you write below this line shows';
 
 // Things that look like secrets. A match blocks the whole submission.
 const SECRET_PATTERNS = [
@@ -43,9 +45,32 @@ const NETWORK_PATTERNS = [
   [/\b(window|document|top|parent|self)?\.?location\s*(\.href)?\s*=(?!=)|\blocation\.(assign|replace)\s*\(/, 'it sends the player to another page. A game stays on its own page'],
   [/<meta[^>]*http-equiv\s*=\s*["']?refresh/i, 'it sends the player to another page automatically'],
   [/\bwindow\.open\s*\(/, 'it opens another window'],
+  [/\b(RTCPeerConnection|webkitRTCPeerConnection|RTCDataChannel)\b/, 'it opens a direct connection to other computers'],
+  [/<link[^>]*\brel\s*=\s*["']?[^"'>]*\b(dns-prefetch|preconnect|prefetch|prerender|preload)\b/i, 'it tells the browser to contact another website ahead of time'],
+  [/\b(alert|confirm|prompt)\s*\(/, 'it uses a pop-up box (alert, confirm or prompt). The gallery switches those off, so show the message on the page instead'],
   [/<a\b[^>]*\bhref\s*=\s*["']?\s*(https?:)?\/\//i, 'it has a link to another website. Take the link out (put your name and LinkedIn in about.md instead)'],
   [/\b(localStorage|sessionStorage|indexedDB)\b/, 'it saves things in the browser. The gallery runs every game in a sealed box where saving is switched off, so the game would break there. Take the saving out'],
 ];
+
+// Camera metadata (EXIF) can include GPS location. JPEG: an APP1 segment starting "Exif".
+// PNG: an eXIf chunk. WebP: an EXIF chunk. Plain byte checks, no dependencies.
+function hasPhotoMetadata(buf) {
+  if (buf.length > 4 && buf[0] === 0xff && buf[1] === 0xd8) {
+    for (let i = 2; i < buf.length - 10; ) {
+      if (buf[i] !== 0xff) break;
+      const marker = buf[i + 1];
+      if (marker === 0xda || marker === 0xd9) break;   // start of image data: no more headers
+      const len = buf.readUInt16BE(i + 2);
+      if (marker === 0xe1 && buf.toString('latin1', i + 4, i + 8) === 'Exif') return true;
+      i += 2 + len;
+    }
+    return false;
+  }
+  const s = buf.toString('latin1', 0, Math.min(buf.length, 1 << 20));
+  if (s.startsWith('\x89PNG')) return s.includes('eXIf');
+  if (s.startsWith('RIFF') && s.slice(8, 12) === 'WEBP') return s.includes('EXIF');
+  return false;
+}
 
 export function parseAbout(text) {
   const m = text.match(/^﻿?---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
@@ -86,7 +111,7 @@ export function loadGames() {
   for (const slug of readdirSync(GAMES_DIR).sort()) {
     const dir = join(GAMES_DIR, slug);
     const dirStat = lstatSync(dir);
-    if (slug.startsWith('_') || slug.startsWith('.')) continue;
+    if (slug === '_template' || slug.startsWith('.')) continue;
     if (dirStat.isSymbolicLink()) { add(slug, 'This is a link, not a real folder. Add a real folder.'); continue; }
     if (!dirStat.isDirectory()) continue;
     const before = problems.length;
@@ -109,6 +134,8 @@ export function loadGames() {
     const about = parseAbout(readFileSync(aboutPath, 'utf8'));
     if (!about) { add(slug, 'about.md must start and end its top section with a line of three dashes: ---'); continue; }
     const a = about.fields;
+    for (const k of Object.keys(a)) if (!KNOWN_FIELDS.has(k)) add(slug, `about.md: "${k}" is not a field the gallery uses. Remove that line.`);
+    if (about.body.includes(TEMPLATE_BODY)) add(slug, 'about.md: replace the sample sentence under the second --- line with your own words, or delete it.');
 
     if (!a.title) add(slug, 'about.md: fill in the title.');
     else if (a.title.length > 60) add(slug, 'about.md: the title is longer than 60 characters.');
@@ -121,12 +148,13 @@ export function loadGames() {
     else if (!files.includes(KINDS[kind])) add(slug, `This is a "${kind}" entry, so the folder needs a file named ${KINDS[kind]}.`);
 
     if (a.made_by && a.made_by.length > 60) add(slug, 'about.md: made_by is longer than 60 characters.');
-    if (a.linkedin && !LINKEDIN_RE.test(a.linkedin)) add(slug, 'about.md: linkedin must be your profile address, starting https://www.linkedin.com/in/');
+    if (a.linkedin && !LINKEDIN_RE.test(a.linkedin)) add(slug, 'about.md: linkedin must be your profile address, starting https://www.linkedin.com/in/ and with nothing after your name (remove everything from a ? onward).');
     if (a.headshot) {
       const hp = join(dir, a.headshot);
       if (!files.includes(a.headshot)) add(slug, `about.md names the photo "${a.headshot}", but there is no file with that name in the folder.`);
       else if (!HEADSHOT_EXT.has(extname(a.headshot).toLowerCase())) add(slug, 'The photo must be a .jpg, .png or .webp file.');
       else if (statSync(hp).size > MAX_HEADSHOT_BYTES) add(slug, 'The photo is bigger than 500 KB. Make it smaller.');
+      else if (hasPhotoMetadata(readFileSync(hp))) add(slug, 'The photo carries hidden details from the camera (which can include where it was taken). Take a screenshot of your photo and use the screenshot instead.');
     }
     const givesCredit = Boolean(a.made_by || a.linkedin || a.headshot);
     if (givesCredit && (a.public_credit_ok || '').toLowerCase() !== 'yes') {
@@ -151,7 +179,9 @@ export function loadGames() {
       }
     }
 
-    if (problems.length === before) games.push({ slug, dir, kind, files, ...a, body: about.body });
+    // The computed values go LAST so nothing in about.md can override slug, dir, kind or files
+    // (a field like "slug: ../x" would otherwise write the game outside the sandbox).
+    if (problems.length === before) games.push({ ...a, slug, dir, kind, files, body: about.body });
   }
   return { games, problems };
 }

@@ -36,11 +36,38 @@ No dependencies: plain Node 18 or later.
 
 ## Rules for maintainers
 
-- **This repo is public.** Never commit passwords, API keys, tokens or anything sensitive, and
-  never add environment variables or secrets to its Netlify site: pull request previews run
-  code from people outside MTM.
-- Every merge needs a review from Joshua or Kim. `main` is protected.
-- Each game belongs to the person who made it. The gallery code is © Meet the Moment.
+**A pull request can change any file, including `build.mjs`, `lib.mjs` and `netlify.toml`.**
+The rules check only protects us from honest mistakes. Against a pull request that rewrites the
+rules themselves, the protection is these settings and this review, so set them up before the
+link is shared and check them again before Session 4.
+
+**Settings to have in place (not yet set up: the repo is not on GitHub yet):**
+- **Netlify, untrusted deploys policy: "Require approval"** (Project configuration > Developer
+  settings > Continuous deployment). Never "Build without restrictions". Pull requests from
+  forks then wait for a maintainer before anything builds.
+- **Netlify: no environment variables, build plugins or extensions** on this site, and check the
+  team for shared ones. Safest is a Netlify team that holds only this site.
+- **Netlify: automatic deletion of deploy previews** when a pull request closes.
+- **GitHub: branch protection on `main`**: pull request required, one approving review from a
+  code owner, no force pushes. Squash merge only.
+- **GitHub: Actions off** for this repo (it uses none).
+- **GitHub: `.github/CODEOWNERS`** makes Joshua (and Kim, once her username is added) the owner
+  of everything.
+
+**Before approving a preview build or a merge:**
+1. Open **Files changed**. Approve only if every path is inside ONE `games/<name>/` folder, and
+   that folder is new or belongs to the person opening the pull request. Approving a build is
+   running their code on our Netlify account: treat it that way.
+2. Open the game file and read it. Look for anything that pretends to be a sign-in page or asks
+   for a password, email or personal detail. The sandbox stops it sending anything, but a person
+   could still be fooled into typing something. Turn those away.
+3. If the pull request adds credit (name, LinkedIn, photo), check that the person credited is
+   the person opening the pull request, and that the consent boxes are ticked.
+
+**If someone asks to be removed:** delete their folder in a new pull request and merge it. Tell
+them plainly that it stays in the repo's history and in any forks.
+
+Each game belongs to the person who made it. The gallery code is © Meet the Moment.
 
 ---
 Built by Meet the Moment · [mtm.now](https://mtm.now)

@@ -1,7 +1,7 @@
 ---
-# Copy this whole folder, rename the copy to your game's name (lowercase, words joined
-# with hyphens, like my-holiday-trivia), and fill in the lines below.
-# Lines that start with # are notes for you. The gallery ignores them.
+# Copy ALL the text of this file into a new file named about.md in your own game folder
+# (folder name: lowercase, words joined with hyphens, like my-holiday-trivia), then fill in
+# the lines below. Lines that start with # are notes for you. The gallery ignores them.
 
 # The name of your game, as players will see it. 60 characters or fewer.
 title:
@@ -37,3 +37,4 @@ public_credit_ok:
 
 Anything you write below this line shows on your game's page. Optional. A good idea:
 one or two sentences on what your players got stuck on and what you changed.
+(Replace these two lines with your own words, or delete them. The gallery will remind you.)

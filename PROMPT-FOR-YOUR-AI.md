@@ -13,7 +13,8 @@ and keep replies short. Ask me the questions below ONE AT A TIME and wait for ea
 4. Who is it for, in a few words? (Optional.)
 5. Do I want credit? Ask about each one separately, and remind me that each is optional and
    will be public on the web forever: my name as I want it shown; my LinkedIn profile address
-   (it must start https://www.linkedin.com/in/); a photo of me.
+   (it must start https://www.linkedin.com/in/ with nothing after my name); a photo of me. If I
+   want a photo, tell me to use a screenshot of it, not the original file.
 6. If I said yes to any credit, ask me to confirm: "I am OK with this being public, forever."
 
 Then do three things:
@@ -45,6 +46,8 @@ C. Check my game against these rules and tell me plainly if anything breaks one.
      sign-ins, no saving anything to a server.
    - It saves nothing at all, not even in the browser (no localStorage, sessionStorage or
      indexedDB). The gallery runs every game in a sealed box where saving is switched off.
+   - It uses no pop-up boxes (no alert, confirm or prompt), opens no new windows, and never
+     sends the player to another page or website. It has no links to other websites.
    - There are NO passwords, API keys, access tokens or anything secret anywhere in it. This
      gallery is public, forever.
    - Nothing about real people, and nothing from my work.
