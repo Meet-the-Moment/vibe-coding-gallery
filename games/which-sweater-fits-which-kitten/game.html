@@ -172,7 +172,7 @@ function renderRound(){
       '<div class="tag">'+k.name+'</div></button>';
   });
   $("kittens").innerHTML=kh;
-  Array.prototype.forEach.call(document.querySelectorAll(".kbox svg"),function(sv,i){sv.setAttribute("width",KW[S.kittens[i].size])});
+  [].forEach.call(document.querySelectorAll(".kbox svg"),function(sv,i){sv.setAttribute("width",KW[S.kittens[i].size])});
   var sh="";
   S.sweaters.forEach(function(s,i){
     sh+='<button class="sw" data-s="'+i+'" style="width:'+(SWW[s.size]+8)+'px" aria-label="'+SIZES[s.size]+' '+s.pat+' sweater">'+sweaterSVG(s)+'</button>';
@@ -182,15 +182,15 @@ function renderRound(){
 }
 function setHint(t){$("hint").textContent=t}
 function setScore(){$("scoreLbl").textContent="Score: "+S.score}
-function clearReady(){Array.prototype.forEach.call(document.querySelectorAll(".kitten"),function(e){e.classList.remove("ready")})}
+function clearReady(){[].forEach.call(document.querySelectorAll(".kitten"),function(e){e.classList.remove("ready")})}
 
 function pickSweater(i){
   if(S.busy||S.sweaters[i].used)return;
   var els=document.querySelectorAll(".sw");
-  Array.prototype.forEach.call(els,function(e){e.classList.remove("sel")});
+  [].forEach.call(els,function(e){e.classList.remove("sel")});
   if(S.selected===i){S.selected=-1;clearReady();setHint("Tap a sweater, then tap the kitten it fits.");return}
   S.selected=i;els[i].classList.add("sel");
-  Array.prototype.forEach.call(document.querySelectorAll(".kitten"),function(e,n){
+  [].forEach.call(document.querySelectorAll(".kitten"),function(e,n){
     if(!S.kittens[n].done)e.classList.add("ready");
   });
   setHint("Now tap the kitten it fits.");

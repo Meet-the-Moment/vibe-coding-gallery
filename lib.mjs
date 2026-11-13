@@ -72,13 +72,13 @@ function pngText(type, data) {
   if (/^raw profile/i.test(keyword)) return null;
   try {
     if (type === 'tEXt') return data.toString('latin1');
-    if (type === 'zTXt') return keyword + ' ' + inflateSync(data.subarray(nul + 2)).toString('latin1');
+    if (type === 'zTXt') return keyword + ' ' + inflateSync(data.slice(nul + 2)).toString('latin1');
     // iTXt: keyword \0 compression-flag method language \0 translated-keyword \0 text
     const flag = data[nul + 1];
     const langEnd = data.indexOf(0, nul + 3);
     const transEnd = langEnd < 0 ? -1 : data.indexOf(0, langEnd + 1);
     if (transEnd < 0) return null;
-    const body = data.subarray(transEnd + 1);
+    const body = data.slice(transEnd + 1);
     return keyword + ' ' + (flag ? inflateSync(body) : body).toString('latin1');
   } catch {
     return null;
@@ -95,7 +95,7 @@ function hasPhotoMetadata(buf) {
       if (marker === 0xff) { i += 1; continue; }          // padding byte
       const len = buf.readUInt16BE(i + 2);
       if (len < 2 || i + 2 + len > buf.length) return true;
-      const seg = buf.subarray(i + 4, i + 2 + len);
+      const seg = buf.slice(i + 4, i + 2 + len);
       if (marker === 0xe1) {
         if (seg.toString('latin1', 0, 4) === 'Exif') return true;
         if (GPS_RE.test(seg.toString('latin1'))) return true;
@@ -113,7 +113,7 @@ function hasPhotoMetadata(buf) {
       if (i + 12 + len > buf.length) return true;
       if (type === 'eXIf') return true;
       if (['tEXt', 'iTXt', 'zTXt'].includes(type)) {
-        const text = pngText(type, buf.subarray(i + 8, i + 8 + len));
+        const text = pngText(type, buf.slice(i + 8, i + 8 + len));
         if (text === null || GPS_RE.test(text)) return true;   // unreadable counts as unsafe
       }
       if (type === 'IEND') return false;
