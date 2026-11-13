@@ -64,7 +64,7 @@ few questions, writes `about.md` for you, and checks your game against the rules
 
 ## What happens next
 
-- Joshua or Kim from Meet the Moment takes a look, then lets a robot build a **preview**: a copy
+- Joshua, Kim or Faith from Meet the Moment takes a look, then lets a robot build a **preview**: a copy
   of the gallery with your game in it. Its link appears in your pull request. This can take a
   day, so do not worry if nothing happens straight away.
 - Open the preview on your phone and play your game. Then tick the last checkbox.

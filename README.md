@@ -51,8 +51,8 @@ link is shared and check them again before Session 4.
 - **GitHub: branch protection on `main`**: pull request required, one approving review from a
   code owner, no force pushes. Squash merge only.
 - **GitHub: Actions off** for this repo (it uses none).
-- **GitHub: `.github/CODEOWNERS`** makes Joshua (and Kim, once her username is added) the owner
-  of everything.
+- **GitHub: `.github/CODEOWNERS`** makes Joshua, Kim and Faith the owners of everything, so a
+  merge needs an approval from one of them.
 
 **Before approving a preview build or a merge:**
 1. Open **Files changed**. Approve only if every path is inside ONE `games/<name>/` folder, and
