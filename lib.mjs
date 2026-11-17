@@ -61,14 +61,12 @@ export const PINNED_LIBRARIES = [
   { name: 'Three.js r159', url: 'https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js', integrity: 'sha384-Lwojr+0fOVR25P8bdL6E0T2dv0q0ZT4Yy2Ia1dGOz6b5jLSzWZkdqlw0cKTQYKzT' },
 ];
 
-// Removes script tags that load a pinned library with its exact hash, so the outside-load check
-// below still catches everything else (another URL, another version, or a missing hash).
+// Removes a pinned library's script line only when it is written exactly as ADD-YOUR-GAME.md
+// shows it. Any other spelling (extra attributes, another order, another URL or version, a missing
+// hash) is left in place, so the outside-load check below still catches it.
+const pinnedTag = (l) => `<script src="${l.url}" integrity="${l.integrity}" crossorigin="anonymous"></script>`;
 function withoutPinnedLibraries(text) {
-  return text.replace(/<script\b([^>]*)>\s*<\/script>/gi, (tag, attrs) => {
-    const attr = (n) => (attrs.match(new RegExp(`\\b${n}\\s*=\\s*["']([^"']*)["']`, 'i')) || [])[1];
-    const ok = PINNED_LIBRARIES.some((l) => attr('src') === l.url && attr('integrity') === l.integrity && attr('crossorigin') === 'anonymous');
-    return ok ? '' : tag;
-  });
+  return PINNED_LIBRARIES.reduce((t, l) => t.split(pinnedTag(l)).join(''), text);
 }
 
 // Photo metadata can include GPS location and camera details. FAILS CLOSED: anything this code
