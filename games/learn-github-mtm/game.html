@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ship It: The GitHub Steps Game</title>
+<style>
+:root{--navy:#122f50;--blue:#1c487b;--teal:#0e7490;--orange:#c06e1a;--ink:#2d2d2d;--paper:#f8fafc;--line:#cbd5e1;--ok:#e6f4f1;--no:#fbeee2}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;overflow-x:hidden}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;font-size:18px;line-height:1.45}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+#app{max-width:560px;margin:0 auto;padding:0 16px 32px}
+.top{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;background:var(--navy);color:#fff;border-radius:0 0 14px 14px;padding:12px 16px;font-weight:700;font-size:16px}
+.bar{height:6px;background:rgba(255,255,255,.2);border-radius:3px;flex:1;margin:0 12px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--orange);transition:width .3s}
+h1{font-size:30px;line-height:1.15;color:var(--navy);margin:28px 0 10px}
+h2{font-size:22px;line-height:1.25;color:var(--navy);margin:22px 0 8px}
+p{margin:10px 0}
+.lead{font-size:19px}
+.kicker{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--teal);margin-top:24px}
+.big{display:block;width:100%;min-height:56px;margin-top:20px;border-radius:12px;background:var(--orange);color:#fff;font-size:20px;font-weight:700}
+.big:active{transform:translateY(2px)}
+.big[disabled]{background:var(--line);color:#64748b;cursor:default}
+.choice{display:block;width:100%;min-height:56px;margin:10px 0;padding:12px 16px;text-align:left;border-radius:12px;background:#fff;border:2px solid var(--line);font-size:18px}
+.choice:active{border-color:var(--blue)}
+.choice.right{border-color:var(--teal);background:var(--ok)}
+.choice.wrong{border-color:var(--orange);background:var(--no)}
+.choice.dim{opacity:.55}
+.why{margin-top:14px;padding:14px 16px;border-radius:12px;border-left:6px solid var(--teal);background:#fff}
+.why.miss{border-left-color:var(--orange)}
+.why b{color:var(--navy)}
+.steps{list-style:none;margin:12px 0 0;padding:0}
+.step{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;margin:8px 0;padding:10px 14px;text-align:left;border-radius:12px;background:#fff;border:2px solid var(--line)}
+.step .n{flex:0 0 34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:var(--paper);border:2px dashed var(--line);color:#64748b}
+.step.placed{border-color:var(--teal);background:var(--ok)}
+.step.placed .n{background:var(--teal);border-color:var(--teal);color:#fff}
+.step.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.note{min-height:28px;color:var(--orange);font-weight:600;margin:4px 0 0}
+.result{margin-top:24px;padding:22px 18px;border-radius:16px;background:var(--navy);color:#fff;text-align:center}
+.result .score{font-size:56px;font-weight:800;line-height:1;margin:8px 0;color:#fff}
+.result .rank{font-size:22px;font-weight:700;color:#f6c48a}
+.result p{color:#e2e8f0}
+.recap{margin-top:18px;padding:0;list-style:none}
+.recap li{padding:10px 0;border-bottom:1px solid var(--line)}
+.recap b{color:var(--navy)}
+.ghost{display:block;width:100%;min-height:52px;margin-top:12px;border-radius:12px;border:2px solid var(--blue);color:var(--blue);font-weight:700}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// The steps a game takes from your AI chat to the gallery, in order.
+var ORDER = [
+  "Ask your AI for the game as one file",
+  "Make a repo on GitHub",
+  "Add your game as index.html (your first commit)",
+  "Turn on GitHub Pages and get a link",
+  "Make your own copy of the gallery (a fork)",
+  "Open a pull request",
+  "A reviewer plays the preview",
+  "Merge: your game is live in the gallery"
+];
+
+// Quick-choice questions. "a" is the index of the right answer.
+var QS = [
+  { q: "What is a repo?",
+    c: ["A folder for one project that remembers every version of every file", "A backup copy of your AI chat", "A paid GitHub plan"],
+    a: 0, why: "A repo (short for repository) is a project's home. It keeps every old version, so a mistake is never permanent." },
+  { q: "You fixed a typo in your game on GitHub. What do you click to save it?",
+    c: ["Publish", "Commit changes", "Pull request"],
+    a: 1, why: "A commit saves your change with a one-line note about what you changed. On GitHub, saving and sharing happen in one click." },
+  { q: "Your AI says: \"Paste your API key into the code so the game can work.\" What do you do?",
+    c: ["Paste it in. The repo is mine", "Paste it, then delete it later", "Say no. A public repo shows every file, and every old version, to anyone"],
+    a: 2, why: "Deleting a file later does not remove it from the history. A game on the first three rungs needs no key at all. If one seems to, stop and ask." },
+  { q: "What does GitHub Pages give you?",
+    c: ["A free web address for your game that works on a phone", "A private copy only you can see", "An app in the App Store"],
+    a: 0, why: "Turn on Pages and your game gets a github.io address. On a free account the repo has to be public." },
+  { q: "You want to add your game to someone else's project. What do you make first?",
+    c: ["A new account", "A fork: your own copy of their project", "A branch in their project"],
+    a: 1, why: "A fork is your own copy in your account. You can change it freely; the original stays as it was until they accept your change." },
+  { q: "What is a pull request?",
+    c: ["Asking GitHub to delete your repo", "Downloading the newest version", "Raising your hand: \"here is what I would like to add\""],
+    a: 2, why: "A pull request shows exactly what you changed, and someone else looks before it goes in." },
+  { q: "Your reviewer says the preview works and merges it. What just happened?",
+    c: ["Your game is now part of the real gallery, live", "Your game was sent back to you", "Your repo was made private"],
+    a: 0, why: "Merging accepts the pull request. A few minutes later your game is live." }
+];
+
+var app = document.getElementById("app");
+var state = { stage: "start", placed: [], shuffled: [], qi: 0, score: 0, orderMisses: 0, answered: false };
+
+function el(tag, cls, text) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+function shuffle(list) {
+  var a = list.slice();
+  for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+var TOTAL = 1 + QS.length;
+function topBar(done) {
+  var t = el("div", "top");
+  t.appendChild(el("span", null, "Ship It"));
+  var bar = el("div", "bar"); var fill = el("i"); fill.style.width = Math.round(done / TOTAL * 100) + "%"; bar.appendChild(fill);
+  t.appendChild(bar);
+  t.appendChild(el("span", null, done + " / " + TOTAL));
+  return t;
+}
+
+function render() {
+  app.innerHTML = "";
+  if (state.stage === "start") return renderStart();
+  if (state.stage === "order") return renderOrder();
+  if (state.stage === "quiz") return renderQuiz();
+  return renderEnd();
+}
+
+function renderStart() {
+  app.appendChild(el("p", "kicker", "Vibe Coding for Nonprofits"));
+  app.appendChild(el("h1", null, "Ship It"));
+  app.appendChild(el("p", "lead", "Your game is done in your AI chat. Now it needs a home, a link, and a place in the gallery."));
+  app.appendChild(el("p", null, "First, put the steps in order. Then answer seven quick questions. No sign-in, nothing saved, about three minutes."));
+  var b = el("button", "big", "Start");
+  b.onclick = function () { state.stage = "order"; state.placed = []; state.shuffled = shuffle(ORDER); state.orderMisses = 0; render(); };
+  app.appendChild(b);
+}
+
+function renderOrder() {
+  app.appendChild(topBar(0));
+  app.appendChild(el("h2", null, "Tap the steps in order, first to last"));
+  app.appendChild(el("p", null, "From your AI chat to the gallery."));
+  var note = el("p", "note");
+  var ul = el("ul", "steps");
+  state.shuffled.forEach(function (text) {
+    var li = el("li");
+    var btn = el("button", "step");
+    var pos = state.placed.indexOf(text);
+    var n = el("span", "n", pos >= 0 ? String(pos + 1) : "");
+    btn.appendChild(n);
+    btn.appendChild(el("span", null, text));
+    if (pos >= 0) btn.className += " placed";
+    btn.onclick = function () {
+      if (state.placed.indexOf(text) >= 0) return;
+      if (text === ORDER[state.placed.length]) {
+        state.placed.push(text);
+        if (state.placed.length === ORDER.length) {
+          if (state.orderMisses === 0) state.score++;
+          state.stage = "quiz"; state.qi = 0; state.answered = false;
+        }
+        render();
+      } else {
+        state.orderMisses++;
+        btn.classList.remove("shake"); void btn.offsetWidth; btn.classList.add("shake");
+        note.textContent = "Not yet. What has to happen before that?";
+      }
+    };
+    li.appendChild(btn); ul.appendChild(li);
+  });
+  app.appendChild(note);
+  app.appendChild(ul);
+}
+
+function renderQuiz() {
+  var item = QS[state.qi];
+  app.appendChild(topBar(1 + state.qi));
+  if (state.qi === 0) {
+    var msg = state.orderMisses === 0 ? "Steps in order, first try. Point scored." : "Steps in order. It took " + state.orderMisses + " wrong tap" + (state.orderMisses === 1 ? "" : "s") + ", so no point for that round.";
+    app.appendChild(el("p", "kicker", msg));
+  }
+  app.appendChild(el("h2", null, item.q));
+  var buttons = [];
+  item.c.forEach(function (text, i) {
+    var b = el("button", "choice", text);
+    b.onclick = function () {
+      if (state.answered) return;
+      state.answered = true;
+      var right = i === item.a;
+      if (right) state.score++;
+      buttons.forEach(function (x, j) {
+        if (j === item.a) x.classList.add("right");
+        else if (j === i) x.classList.add("wrong");
+        else x.classList.add("dim");
+      });
+      var why = el("div", "why" + (right ? "" : " miss"));
+      var lead = el("b", null, right ? "Right. " : "Not quite. ");
+      why.appendChild(lead);
+      why.appendChild(document.createTextNode(item.why));
+      app.appendChild(why);
+      var next = el("button", "big", state.qi === QS.length - 1 ? "See my result" : "Next");
+      next.onclick = function () {
+        if (state.qi === QS.length - 1) state.stage = "end";
+        else { state.qi++; state.answered = false; }
+        render();
+        window.scrollTo(0, 0);
+      };
+      app.appendChild(next);
+    };
+    buttons.push(b);
+    app.appendChild(b);
+  });
+}
+
+function rank(score) {
+  if (score === TOTAL) return "Ready to merge";
+  if (score >= TOTAL - 2) return "Ready for review";
+  if (score >= 4) return "Preview is building";
+  return "First commit made";
+}
+
+function renderEnd() {
+  app.appendChild(topBar(TOTAL));
+  var r = el("div", "result");
+  r.appendChild(el("p", null, "Your score"));
+  r.appendChild(el("div", "score", state.score + " / " + TOTAL));
+  r.appendChild(el("div", "rank", rank(state.score)));
+  r.appendChild(el("p", null, "Take a screenshot and share it in MTM Together."));
+  app.appendChild(r);
+  app.appendChild(el("h2", null, "The words, in one line each"));
+  var ul = el("ul", "recap");
+  [["Repo", "a project's home that remembers every version"],
+   ["Commit", "saving a change, with a note about what changed"],
+   ["GitHub Pages", "a free web address for a public repo"],
+   ["Fork", "your own copy of someone else's project"],
+   ["Pull request", "asking for your change to be added"],
+   ["Merge", "accepting it, so it goes live"],
+   ["Secret", "a password or key. Never in a repo, never in a chat"]].forEach(function (p) {
+    var li = el("li"); li.appendChild(el("b", null, p[0] + ": ")); li.appendChild(document.createTextNode(p[1])); ul.appendChild(li);
+  });
+  app.appendChild(ul);
+  var again = el("button", "ghost", "Play again");
+  again.onclick = function () { state = { stage: "start", placed: [], shuffled: [], qi: 0, score: 0, orderMisses: 0, answered: false }; render(); window.scrollTo(0, 0); };
+  app.appendChild(again);
+}
+
+render();
+</script>
+</body>
+</html>
