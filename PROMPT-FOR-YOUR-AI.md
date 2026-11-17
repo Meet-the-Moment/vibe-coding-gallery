@@ -41,7 +41,8 @@ public_credit_ok:
 C. Check my game against these rules and tell me plainly if anything breaks one. If it does,
    give me a fixed version:
    - Everything is in ONE file. It loads nothing from other websites: no outside scripts,
-     fonts, images or styles.
+     fonts, images or styles. Two exceptions: Chart.js 4.4.1 or Three.js r159, loaded with the
+     exact script line in ADD-YOUR-GAME.md and nothing else.
    - It collects nothing and sends nothing anywhere: no fetch, no forms that send answers, no
      sign-ins, no saving anything to a server.
    - It saves nothing at all, not even in the browser (no localStorage, sessionStorage or

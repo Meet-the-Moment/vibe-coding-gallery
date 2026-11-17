@@ -53,6 +53,24 @@ const NETWORK_PATTERNS = [
   [/\b(localStorage|sessionStorage|indexedDB)\b/, 'it saves things in the browser. The gallery runs every game in a sealed box where saving is switched off, so the game would break there. Take the saving out'],
 ];
 
+// The only outside files a game may load: exact, version-pinned library files, each with its
+// integrity hash, so the browser refuses the file if it ever changes. The same URLs are allowed
+// in PLAY_CSP (build.mjs) and in netlify.toml. Add a library here only with all three updated.
+export const PINNED_LIBRARIES = [
+  { name: 'Chart.js 4.4.1', url: 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js', integrity: 'sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG' },
+  { name: 'Three.js r159', url: 'https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js', integrity: 'sha384-Lwojr+0fOVR25P8bdL6E0T2dv0q0ZT4Yy2Ia1dGOz6b5jLSzWZkdqlw0cKTQYKzT' },
+];
+
+// Removes script tags that load a pinned library with its exact hash, so the outside-load check
+// below still catches everything else (another URL, another version, or a missing hash).
+function withoutPinnedLibraries(text) {
+  return text.replace(/<script\b([^>]*)>\s*<\/script>/gi, (tag, attrs) => {
+    const attr = (n) => (attrs.match(new RegExp(`\\b${n}\\s*=\\s*["']([^"']*)["']`, 'i')) || [])[1];
+    const ok = PINNED_LIBRARIES.some((l) => attr('src') === l.url && attr('integrity') === l.integrity && attr('crossorigin') === 'anonymous');
+    return ok ? '' : tag;
+  });
+}
+
 // Photo metadata can include GPS location and camera details. FAILS CLOSED: anything this code
 // cannot fully read counts as "has metadata". Plain byte parsing, no dependencies.
 // - JPEG: any EXIF (APP1 "Exif") or IPTC (APP13) segment; any XMP (APP1) mentioning GPS;
@@ -236,7 +254,7 @@ export function loadGames() {
     if (kind === 'web' || kind === 'tool') {
       const f = KINDS[kind];
       if (files.includes(f)) {
-        const text = readFileSync(join(dir, f), 'utf8');
+        const text = withoutPinnedLibraries(readFileSync(join(dir, f), 'utf8'));
         for (const [re, what] of NETWORK_PATTERNS) {
           if (re.test(text)) add(slug, `${f}: ${what}. Games in this gallery collect nothing and send nothing anywhere.`);
         }

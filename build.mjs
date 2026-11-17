@@ -8,7 +8,7 @@
 
 import { mkdirSync, rmSync, cpSync, writeFileSync, readFileSync, copyFileSync } from 'node:fs';
 import { join, extname } from 'node:path';
-import { loadGames, ROOT } from './lib.mjs';
+import { loadGames, ROOT, PINNED_LIBRARIES } from './lib.mjs';
 
 const DEFAULT_LOOK = 'arcade';
 const SHOW_PICKER = true;
@@ -24,7 +24,7 @@ const LOOKS = {
 // blocks background network calls; no network sources are allowed for scripts, styles, images,
 // media or fonts; webrtc 'block' covers direct connections in browsers that support it (the rules
 // in lib.mjs also reject WebRTC code, since not every browser honours that directive yet).
-const PLAY_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; child-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; webrtc 'block'";
+const PLAY_CSP = "default-src 'none'; script-src 'unsafe-inline' " + PINNED_LIBRARIES.map((l) => l.url).join(' ') + "; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; child-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; webrtc 'block'";
 
 const KIND_LABEL ={ web: 'Play in your browser', prompt: 'Prompt game', tool: 'Small tool' };
 const KIND_BUTTON = { web: 'Play', prompt: 'Get the prompt', tool: 'Try it' };

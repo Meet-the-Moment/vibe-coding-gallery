@@ -32,7 +32,9 @@ send data, or send its own frame to another address. Tested 11/13/2026 with a de
 hostile game and no server headers: every one of those attempts was blocked. Prompt pages are
 under `/prompts/`.
 
-No dependencies: plain Node 18 or later.
+No dependencies: plain Node 18 or later. Games may load only the pinned libraries listed in
+`PINNED_LIBRARIES` in `lib.mjs`; the same URLs are allowed in the `/play/` policies in `build.mjs`
+and `netlify.toml`.
 
 ## Rules for maintainers
 
