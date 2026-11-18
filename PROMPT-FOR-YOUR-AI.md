@@ -41,8 +41,15 @@ public_credit_ok:
 C. Check my game against these rules and tell me plainly if anything breaks one. If it does,
    give me a fixed version:
    - Everything is in ONE file. It loads nothing from other websites: no outside scripts,
-     fonts, images or styles. Two exceptions: Chart.js 4.4.1 or Three.js r159, loaded with the
-     exact script line in ADD-YOUR-GAME.md and nothing else.
+     fonts, images or styles. Two exceptions, only if my game draws charts or 3D: it may load
+     Chart.js or Three.js with one of these two lines, copied character for character (no
+     other version, no extra words such as defer or async, nothing left out):
+
+     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js" integrity="sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG" crossorigin="anonymous"></script>
+     <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js" integrity="sha384-Lwojr+0fOVR25P8bdL6E0T2dv0q0ZT4Yy2Ia1dGOz6b5jLSzWZkdqlw0cKTQYKzT" crossorigin="anonymous"></script>
+
+     Three.js r159 is an older version: use only what it offers through the global THREE, with
+     no import lines and no add-ons loaded from other files.
    - It collects nothing and sends nothing anywhere: no fetch, no forms that send answers, no
      sign-ins, no saving anything to a server.
    - It saves nothing at all, not even in the browser (no localStorage, sessionStorage or

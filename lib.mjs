@@ -41,7 +41,7 @@ const NETWORK_PATTERNS = [
   [/sendBeacon\s*\(/, 'sendBeacon sends data to a server'],
   [/new\s+EventSource\s*\(/, 'EventSource connects to a server'],
   [/<form[^>]*\baction\s*=/i, 'a form that sends its answers somewhere'],
-  [/<(script|link|img|iframe|audio|video|source|embed|object)\b[^>]*\b(src|href)\s*=\s*["']?\s*(https?:)?\/\//i, 'it loads something from another website (put everything inside the one file)'],
+  [/<(script|link|img|iframe|audio|video|source|embed|object)\b[^>]*\b(src|href)\s*=\s*["']?\s*(https?:)?\/\//i, 'it loads something from another website. Put everything inside the one file. (The only exceptions are Chart.js 4.4.1 and Three.js r159, and only with the exact script line in ADD-YOUR-GAME.md, copied character for character: no other version, nothing added such as defer or async, nothing left out)'],
   [/@import\s+url\(\s*["']?(https?:)?\/\//i, 'it loads a style from another website'],
   [/\b(window|document|top|parent|self)?\.?location\s*(\.href)?\s*=(?!=)|\blocation\.(assign|replace)\s*\(/, 'it sends the player to another page. A game stays on its own page'],
   [/<meta[^>]*http-equiv\s*=\s*["']?refresh/i, 'it sends the player to another page automatically'],
