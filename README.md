@@ -19,7 +19,7 @@ top of `build.mjs`.
 | Part | What it does |
 |---|---|
 | `games/<name>/` | One folder per game: `about.md` plus `game.html`, `prompt.md` or `tool.html`, and an optional photo. `_template` is the starter. |
-| `lib.mjs` | The rules: required fields, file types and sizes, no links or special files, credit only with consent, no secrets, no network calls, no saving, nothing loaded from other sites. |
+| `lib.mjs` | The rules: required fields, file types and sizes, no links or special files, credit only with consent, no secrets, no network calls, no saving, nothing loaded from other sites except the two pinned libraries (see below). |
 | `check.mjs` | `node check.mjs` runs the rules and says in plain words what to fix. |
 | `build.mjs` | `node build.mjs` runs the same rules, then builds the site into `dist/`. It refuses to build if any game breaks a rule. |
 | `netlify.toml` | Build settings and security headers, a second layer behind the wrappers below. |
@@ -32,7 +32,11 @@ send data, or send its own frame to another address. Tested 11/13/2026 with a de
 hostile game and no server headers: every one of those attempts was blocked. Prompt pages are
 under `/prompts/`.
 
-No dependencies: plain Node 18 or later.
+No dependencies: plain Node 18 or later. Games may load only the pinned libraries listed in
+`PINNED_LIBRARIES` in `lib.mjs`; the same URLs are allowed in the `/play/` policies in `build.mjs`
+and `netlify.toml`, and `build.mjs` stops if the `netlify.toml` copy drifts from the list. A game
+that uses one makes the player's browser fetch that file from jsDelivr, which sees the player's IP
+address; the gallery footer says so. Such a game also stops working if jsDelivr is down.
 
 ## Rules for maintainers
 

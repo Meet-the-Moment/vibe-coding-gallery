@@ -7,6 +7,8 @@
 # maintainer approves only pull requests that touch nothing but one games/<name>/ folder.
 #
 # NEVER add environment variables or secrets to this Netlify site or its team.
+#
+# The library URLs in the /play/* script-src below must match PINNED_LIBRARIES in lib.mjs.
 
 [build]
   command = "node build.mjs"
@@ -31,5 +33,5 @@
 [[headers]]
   for = "/play/*"
   [headers.values]
-    Content-Security-Policy = "sandbox allow-scripts allow-forms; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; child-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; webrtc 'block'; frame-ancestors 'self'"
+    Content-Security-Policy = "sandbox allow-scripts allow-forms; default-src 'none'; script-src 'unsafe-inline' https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; child-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; webrtc 'block'; frame-ancestors 'self'"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"

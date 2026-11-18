@@ -45,6 +45,19 @@ never for someone else.
 Easiest way to make the folder: paste `PROMPT-FOR-YOUR-AI.md` into your AI tool. It asks you a
 few questions, writes `about.md` for you, and checks your game against the rules.
 
+## Charts and 3D: the two libraries you may use
+
+A game loads nothing from other websites, with two exceptions. If your game draws charts or 3D,
+it may load one of these, copied exactly as written (the long code checks the file has not changed):
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js" integrity="sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js" integrity="sha384-Lwojr+0fOVR25P8bdL6E0T2dv0q0ZT4Yy2Ia1dGOz6b5jLSzWZkdqlw0cKTQYKzT" crossorigin="anonymous"></script>
+```
+
+Any other version or library, or the same line without the long code, and the gallery turns the
+game away.
+
 ## The steps
 
 1. Sign in to GitHub, and hide your email address (see above).

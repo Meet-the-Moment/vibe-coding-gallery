@@ -41,7 +41,7 @@ const NETWORK_PATTERNS = [
   [/sendBeacon\s*\(/, 'sendBeacon sends data to a server'],
   [/new\s+EventSource\s*\(/, 'EventSource connects to a server'],
   [/<form[^>]*\baction\s*=/i, 'a form that sends its answers somewhere'],
-  [/<(script|link|img|iframe|audio|video|source|embed|object)\b[^>]*\b(src|href)\s*=\s*["']?\s*(https?:)?\/\//i, 'it loads something from another website (put everything inside the one file)'],
+  [/<(script|link|img|iframe|audio|video|source|embed|object)\b[^>]*\b(src|href)\s*=\s*["']?\s*(https?:)?\/\//i, 'it loads something from another website. Put everything inside the one file. (The only exceptions are Chart.js 4.4.1 and Three.js r159, and only with the exact script line in ADD-YOUR-GAME.md, copied character for character: no other version, nothing added such as defer or async, nothing left out)'],
   [/@import\s+url\(\s*["']?(https?:)?\/\//i, 'it loads a style from another website'],
   [/\b(window|document|top|parent|self)?\.?location\s*(\.href)?\s*=(?!=)|\blocation\.(assign|replace)\s*\(/, 'it sends the player to another page. A game stays on its own page'],
   [/<meta[^>]*http-equiv\s*=\s*["']?refresh/i, 'it sends the player to another page automatically'],
@@ -52,6 +52,22 @@ const NETWORK_PATTERNS = [
   [/<a\b[^>]*\bhref\s*=\s*["']?\s*(https?:)?\/\//i, 'it has a link to another website. Take the link out (put your name and LinkedIn in about.md instead)'],
   [/\b(localStorage|sessionStorage|indexedDB)\b/, 'it saves things in the browser. The gallery runs every game in a sealed box where saving is switched off, so the game would break there. Take the saving out'],
 ];
+
+// The only outside files a game may load: exact, version-pinned library files, each with its
+// integrity hash, so the browser refuses the file if it ever changes. The same URLs are allowed
+// in PLAY_CSP (build.mjs) and in netlify.toml. Add a library here only with all three updated.
+export const PINNED_LIBRARIES = [
+  { name: 'Chart.js 4.4.1', url: 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js', integrity: 'sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG' },
+  { name: 'Three.js r159', url: 'https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js', integrity: 'sha384-Lwojr+0fOVR25P8bdL6E0T2dv0q0ZT4Yy2Ia1dGOz6b5jLSzWZkdqlw0cKTQYKzT' },
+];
+
+// Removes a pinned library's script line only when it is written exactly as ADD-YOUR-GAME.md
+// shows it. Any other spelling (extra attributes, another order, another URL or version, a missing
+// hash) is left in place, so the outside-load check below still catches it.
+const pinnedTag = (l) => `<script src="${l.url}" integrity="${l.integrity}" crossorigin="anonymous"></script>`;
+function withoutPinnedLibraries(text) {
+  return PINNED_LIBRARIES.reduce((t, l) => t.split(pinnedTag(l)).join(''), text);
+}
 
 // Photo metadata can include GPS location and camera details. FAILS CLOSED: anything this code
 // cannot fully read counts as "has metadata". Plain byte parsing, no dependencies.
@@ -236,7 +252,7 @@ export function loadGames() {
     if (kind === 'web' || kind === 'tool') {
       const f = KINDS[kind];
       if (files.includes(f)) {
-        const text = readFileSync(join(dir, f), 'utf8');
+        const text = withoutPinnedLibraries(readFileSync(join(dir, f), 'utf8'));
         for (const [re, what] of NETWORK_PATTERNS) {
           if (re.test(text)) add(slug, `${f}: ${what}. Games in this gallery collect nothing and send nothing anywhere.`);
         }

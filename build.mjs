@@ -8,7 +8,7 @@
 
 import { mkdirSync, rmSync, cpSync, writeFileSync, readFileSync, copyFileSync } from 'node:fs';
 import { join, extname } from 'node:path';
-import { loadGames, ROOT } from './lib.mjs';
+import { loadGames, ROOT, PINNED_LIBRARIES } from './lib.mjs';
 
 const DEFAULT_LOOK = 'arcade';
 const SHOW_PICKER = true;
@@ -21,13 +21,25 @@ const LOOKS = {
 
 // Policy for the wrapper page around each game, and (by inheritance) the game's frame.
 // frame-src 'none' stops the frame being navigated to any other address; connect-src 'none'
-// blocks background network calls; no network sources are allowed for scripts, styles, images,
-// media or fonts; webrtc 'block' covers direct connections in browsers that support it (the rules
+// blocks background network calls; no network sources are allowed for styles, images, media or
+// fonts, and for scripts only the exact PINNED_LIBRARIES files from lib.mjs; webrtc 'block' covers direct connections in browsers that support it (the rules
 // in lib.mjs also reject WebRTC code, since not every browser honours that directive yet).
-const PLAY_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; child-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; webrtc 'block'";
+const PLAY_CSP = "default-src 'none'; script-src 'unsafe-inline' " + PINNED_LIBRARIES.map((l) => l.url).join(' ') + "; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; child-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; webrtc 'block'";
 
 const KIND_LABEL ={ web: 'Play in your browser', prompt: 'Prompt game', tool: 'Small tool' };
 const KIND_BUTTON = { web: 'Play', prompt: 'Get the prompt', tool: 'Try it' };
+
+// netlify.toml carries a hand-copied list of the same library URLs in its /play/* policy. If the
+// two lists ever differ, a game would work in one place and break in the other, so stop here.
+const netlifyToml = readFileSync(join(ROOT, 'netlify.toml'), 'utf8');
+const tomlLibUrls = netlifyToml.match(/https:\/\/cdn\.jsdelivr\.net\/\S+?(?=[\s;"])/g) || [];
+const pinnedUrls = PINNED_LIBRARIES.map((l) => l.url);
+if (tomlLibUrls.length !== pinnedUrls.length || pinnedUrls.some((u) => !tomlLibUrls.includes(u))) {
+  console.error('\nBuild stopped. The library URLs in netlify.toml do not match PINNED_LIBRARIES in lib.mjs.');
+  console.error(`  lib.mjs:      ${pinnedUrls.join(' ') || '(none)'}`);
+  console.error(`  netlify.toml: ${tomlLibUrls.join(' ') || '(none)'}\n`);
+  process.exit(1);
+}
 
 const { games, problems } = loadGames();
 if (problems.length) {
@@ -241,7 +253,7 @@ const galleryBody = `<body data-look="${DEFAULT_LOOK}" data-page="gallery">
     ${games.length ? games.map(card).join('\n') : '<p class="empty">The first games arrive soon.</p>'}
   </main>
   <footer>
-    <p><strong>Nothing here collects anything about anyone.</strong> Every game runs in your browser and sends nothing anywhere.</p>
+    <p><strong>Nothing here collects anything about anyone.</strong> Every game runs in your browser and sends nothing anywhere. A game that draws charts or 3D loads its drawing library from jsDelivr, a public code host, which sees your IP address the way any website you visit does.</p>
     <p>Each game belongs to the person who made it. Built for MTM Together by <a href="https://mtm.now">Meet the Moment</a>.</p>
   </footer>
 </div>
