@@ -25,7 +25,7 @@ top of `build.mjs`.
 | `netlify.toml` | Build settings and security headers, a second layer behind the wrappers below. |
 
 **How games are contained.** A maker's file is never served as a page of its own. `build.mjs`
-puts it inside a frame with `sandbox="allow-scripts"` on a wrapper page under `/play/`, and
+puts it inside a frame with `sandbox="allow-scripts allow-forms"` on a wrapper page under `/play/`, and
 writes a strict policy into that page. The game gets a sealed origin: it cannot read or change
 the gallery or another game, save anything, open pop-ups, submit forms, move the player's page,
 send data, or send its own frame to another address. Tested 11/13/2026 with a deliberately
@@ -45,7 +45,9 @@ The rules check only protects us from honest mistakes. Against a pull request th
 rules themselves, the protection is these settings and this review, so set them up before the
 link is shared and check them again before Session 4.
 
-**Settings to have in place (not yet set up: the repo is not on GitHub yet):**
+**Settings to have in place.** Checked 11/17/2026 by a maintainer without admin access: `main`
+is protected, squash merge is the only merge type, and CODEOWNERS is in place. The Netlify
+settings, the branch protection details and the Actions setting need an admin to confirm.
 - **Netlify, untrusted deploys policy: "Require approval"** (Project configuration > Developer
   settings > Continuous deployment). Never "Build without restrictions". Pull requests from
   forks then wait for a maintainer before anything builds.
